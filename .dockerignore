@@ -1,0 +1,10 @@
+.git
+.github
+.env
+.gitignore
+docs
+evidence
+scripts
+LICENSE
+README.md
+*.log
