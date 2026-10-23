@@ -2,11 +2,11 @@
 FROM nginx:1.31.6-alpine
 
 LABEL org.opencontainers.image.title="Docker Foundations Lab" \
-      org.opencontainers.image.description="A small non-root Nginx image used to practise Docker fundamentals" \
+      org.opencontainers.image.description="Een kleine non-root Nginx-image om Dockerfundamenten te oefenen" \
       org.opencontainers.image.source="https://github.com/DriesSpeeleveld/docker-foundations-lab"
 
 COPY nginx.conf /etc/nginx/nginx.conf
-COPY --chown=nginx:nginx site/ /usr/share/nginx/html/
+COPY --chown=nginx:nginx website/ /usr/share/nginx/html/
 
 USER nginx
 

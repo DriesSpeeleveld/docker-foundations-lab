@@ -1,127 +1,134 @@
 # Docker Foundations Lab
 
-A small Docker project that demonstrates the fundamentals I learned: building an image, running a service with Compose, publishing a port, using container DNS, persisting data in a named volume, checking health, diagnosing failures, and cleaning up safely.
+Een klein Dockerproject waarmee ik de basisvaardigheden aantoon die ik heb geleerd: een image bouwen, een service met Compose starten, een poort publiceren, Docker DNS gebruiken, gegevens in een benoemd volume bewaren, healthchecks uitvoeren, fouten onderzoeken en veilig opruimen.
 
-This repository is intentionally small. The goal is to understand every file and command, not to hide the basics behind a framework.
+Deze repository blijft bewust klein. Het doel is dat ik ieder bestand en ieder commando kan uitleggen, zonder dat een framework de basis verbergt.
 
-## Architecture
+## Architectuur
 
 ```text
-browser ── http://127.0.0.1:8080 ──> web (Nginx, non-root)
-                                           │
-                                      app network
-                                           │
-                                    probe container
+webbrowser ── http://127.0.0.1:8080 ──> website (Nginx, non-root)
+                                               │
+                                          labnetwerk
+                                               │
+                                      controlecontainer
 
-evidence-writer ──> named volume <── evidence-reader
+bewijs-schrijver ──> benoemd volume <── bewijs-lezer
 ```
 
-The web container and probe share the `app` network. The probe reaches the site through Docker DNS at `http://web:8080`; it does not use the published host port. The writer and reader demonstrate that a named volume survives container replacement.
+De website en controlecontainer delen het netwerk `labnetwerk`. De controlecontainer bereikt de website via Docker DNS op `http://website:8080`; hij gebruikt dus niet de gepubliceerde hostpoort. De schrijver en lezer tonen aan dat een benoemd volume blijft bestaan wanneer een container wordt vervangen.
 
-More detail: [architecture](docs/architecture.md).
+Meer uitleg staat in [architectuur](documentatie/architectuur.md).
 
-## Requirements
+## Benodigdheden
 
-- Linux with Docker Engine and Docker Compose v2
+- Linux met Docker Engine en Docker Compose v2
 - Git
 - `curl`
 
-The intended learning environment is a Debian VM. No router port-forward is required.
+De voorziene leeromgeving is een Debian-VM. Portforwarding op je router is niet nodig.
 
-## Quick start
+## Snel starten
 
 ```bash
 git clone https://github.com/DriesSpeeleveld/docker-foundations-lab.git
 cd docker-foundations-lab
 cp .env.example .env
 docker compose config
-docker compose up --build --detach --wait web
+docker compose up --build --detach --wait website
 curl http://127.0.0.1:8080/health
 ```
 
-Open <http://127.0.0.1:8080> in the Debian VM, or use `curl` in its terminal.
+Open <http://127.0.0.1:8080> in de Debian-VM, of gebruik `curl` in de terminal.
 
-Inspect the running project:
+Onderzoek het draaiende project:
 
 ```bash
 docker compose ps
-docker compose logs web
-docker compose exec web id
+docker compose logs website
+docker compose exec website id
 docker network ls
 docker volume ls
 ```
 
-## Test the complete lab
+## Het volledige lab testen
 
-The test script uses an isolated Compose project name and a random host port. It validates the configuration, builds the image, waits for health, tests HTTP, checks Docker DNS, verifies non-root/read-only settings, and proves volume persistence.
-
-```bash
-bash scripts/test.sh
-```
-
-The script removes only its own test containers, network, image references, and volume when it finishes.
-
-## Named-volume demonstration
+Het testscript gebruikt een aparte Compose-projectnaam en een willekeurige hostpoort. Het controleert de configuratie, bouwt het image, wacht op een gezonde status, test HTTP en Docker DNS, controleert de non-root- en alleen-lezeninstellingen en bewijst volumepersistentie.
 
 ```bash
-docker compose --profile tools run --rm evidence-writer
-docker compose --profile tools run --rm evidence-reader
+bash scripts/test-lab.sh
 ```
 
-Run the writer again to replace the container while keeping the volume. The reader should still find `/evidence/proof.txt`.
+Na afloop verwijdert het script alleen zijn eigen testcontainers, netwerk, imageverwijzingen en volume.
 
-## Safe cleanup
-
-Keep the named volume:
+## Demonstratie van het benoemde volume
 
 ```bash
-docker compose --profile tools down --remove-orphans
+docker compose --profile hulpmiddelen run --rm bewijs-schrijver
+docker compose --profile hulpmiddelen run --rm bewijs-lezer
 ```
 
-Delete the project containers, network, and named volume:
+Voer de schrijver opnieuw uit. Docker maakt telkens een nieuwe hulpcontainer, terwijl het volume behouden blijft. De lezer moet `/bewijs/bewijs.txt` nog steeds kunnen lezen.
+
+## Veilig opruimen
+
+Behoud het benoemde volume:
 
 ```bash
-docker compose --profile tools down --volumes --remove-orphans
+docker compose --profile hulpmiddelen down --remove-orphans
 ```
 
-Do not use a global prune command for this lab.
+Verwijder de projectcontainers, het netwerk en het benoemde volume:
 
-## Deliberate failure labs
+```bash
+docker compose --profile hulpmiddelen down --volumes --remove-orphans
+```
 
-The project includes five controlled troubleshooting exercises:
+Gebruik voor dit lab geen algemeen `prune`-commando.
 
-1. invalid Compose YAML;
-2. occupied host port;
-3. missing source in `COPY`;
-4. probe on the wrong network;
-5. invalid runtime command.
+## Gecontroleerde foutlabs
 
-Instructions and recovery checks are in [failure labs](docs/failure-labs.md). Work on a branch or make a copy before changing working files.
+Het project bevat vijf oefeningen waarin je bewust één fout veroorzaakt en daarna onderzoekt:
 
-## Security decisions
+1. ongeldige Compose-YAML;
+2. bezette hostpoort;
+3. ontbrekende bron voor `COPY`;
+4. controlecontainer op het verkeerde netwerk;
+5. ongeldig runtimecommando.
 
-- Nginx runs as the existing unprivileged `nginx` user.
-- The service listens on port 8080, so it does not need a privileged port.
-- The root filesystem is read-only at runtime.
-- `/tmp` is a small temporary filesystem.
-- All Linux capabilities are dropped.
-- `no-new-privileges` is enabled.
-- The host port binds only to `127.0.0.1`.
-- The helper containers have no published ports.
-- The volume helpers have networking disabled.
-- No secrets are required or stored in the image.
+De opdrachten en herstelcontroles staan in [foutlabs](documentatie/foutlabs.md). Werk op een branch of maak eerst een kopie voordat je werkende bestanden verandert.
 
-See [security](docs/security.md) for the limits of these controls.
+## Beveiligingskeuzes
 
-## Repository layout
+- Nginx draait als de bestaande gebruiker `nginx`, niet als root.
+- De service luistert intern op poort 8080 en heeft dus geen geprivilegieerde poort nodig.
+- Het rootbestandssysteem is tijdens runtime alleen-lezen.
+- `/tmp` is een klein tijdelijk bestandssysteem.
+- Alle Linux-capabilities worden verwijderd.
+- `no-new-privileges` is ingeschakeld.
+- De hostpoort luistert alleen op `127.0.0.1`.
+- De hulpcontainers publiceren geen poorten.
+- De volumehulpen hebben geen netwerktoegang.
+- Er zijn geen secrets nodig en er worden geen secrets in het image opgeslagen.
+
+Lees [beveiliging](documentatie/beveiliging.md) voor de grenzen van deze maatregelen.
+
+## Mappenstructuur
 
 ```text
 .
-├── .github/workflows/validate.yml
-├── docs/
-├── evidence/
-├── scripts/test.sh
-├── site/
+├── .github/workflows/controleren.yml
+├── bewijs/
+│   └── testresultaten.md
+├── documentatie/
+│   ├── architectuur.md
+│   ├── beveiliging.md
+│   ├── foutlabs.md
+│   ├── leerchecklist.md
+│   └── probleemoplossing.md
+├── scripts/
+│   └── test-lab.sh
+├── website/
 ├── .dockerignore
 ├── .env.example
 ├── compose.yaml
@@ -130,23 +137,23 @@ See [security](docs/security.md) for the limits of these controls.
 └── README.md
 ```
 
-## Evidence and learning
+## Bewijs en leercontrole
 
-- [Test evidence](evidence/test-results.md)
-- [Architecture](docs/architecture.md)
-- [Security notes](docs/security.md)
-- [Troubleshooting guide](docs/troubleshooting.md)
-- [Failure labs](docs/failure-labs.md)
-- [Self-check](docs/learning-checklist.md)
+- [Testbewijs](bewijs/testresultaten.md)
+- [Architectuur](documentatie/architectuur.md)
+- [Beveiligingsnotities](documentatie/beveiliging.md)
+- [Gids voor probleemoplossing](documentatie/probleemoplossing.md)
+- [Foutlabs](documentatie/foutlabs.md)
+- [Zelfcontrole](documentatie/leerchecklist.md)
 
-## Known limitations
+## Gekende beperkingen
 
-- This is a learning project, not a production hosting platform.
-- It serves a static page and has no authentication or user data.
-- The named volume stores demonstration data only.
-- Image tags can move over time; updates must be tested before merging.
-- TLS is outside this repository's current scope.
+- Dit is een leerproject, geen productieplatform.
+- Het serveert een statische pagina en bevat geen authenticatie of gebruikersgegevens.
+- Het benoemde volume bewaart alleen demonstratiegegevens.
+- Imagetags kunnen na verloop van tijd veranderen; updates moeten eerst worden getest.
+- TLS valt momenteel buiten de scope van deze repository.
 
-## License
+## Licentie
 
-MIT. See [LICENSE](LICENSE).
+MIT. Zie [LICENSE](LICENSE).

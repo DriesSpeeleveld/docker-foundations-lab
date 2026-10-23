@@ -1,4 +1,4 @@
-name: validate
+name: controleren
 
 on:
   push:
@@ -9,18 +9,18 @@ permissions:
   contents: read
 
 jobs:
-  docker-lab:
+  docker-lab-controleren:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
-      - name: Check out repository
+      - name: Repository ophalen
         uses: actions/checkout@v4
 
-      - name: Show Docker versions
+      - name: Docker-versies tonen
         run: |
           docker version
           docker compose version
 
-      - name: Run lab tests
-        run: bash scripts/test.sh
+      - name: Labtests uitvoeren
+        run: bash scripts/test-lab.sh

@@ -1,14 +1,14 @@
 name: docker-foundations-lab
 
 services:
-  web:
+  website:
     build:
       context: .
     image: docker-foundations-lab:local
     ports:
-      - "127.0.0.1:${WEB_PORT:-8080}:8080"
+      - "127.0.0.1:${WEBPOORT:-8080}:8080"
     networks:
-      - app
+      - labnetwerk
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=16m
@@ -23,15 +23,15 @@ services:
       start_period: 5s
       retries: 5
 
-  probe:
+  controle:
     image: alpine:3.22
-    profiles: ["tools"]
-    command: ["wget", "-qO-", "http://web:8080/health"]
+    profiles: ["hulpmiddelen"]
+    command: ["wget", "-qO-", "http://website:8080/health"]
     depends_on:
-      web:
+      website:
         condition: service_healthy
     networks:
-      - app
+      - labnetwerk
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=4m
@@ -40,13 +40,13 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  evidence-writer:
+  bewijs-schrijver:
     image: alpine:3.22
-    profiles: ["tools"]
+    profiles: ["hulpmiddelen"]
     command:
       - sh
       - -c
-      - printf 'volume persistence verified at %s\n' "$$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /evidence/proof.txt
+      - printf 'volumepersistentie gecontroleerd op %s\n' "$$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /bewijs/bewijs.txt
     network_mode: none
     read_only: true
     cap_drop:
@@ -54,12 +54,12 @@ services:
     security_opt:
       - no-new-privileges:true
     volumes:
-      - evidence:/evidence
+      - bewijs:/bewijs
 
-  evidence-reader:
+  bewijs-lezer:
     image: alpine:3.22
-    profiles: ["tools"]
-    command: ["cat", "/evidence/proof.txt"]
+    profiles: ["hulpmiddelen"]
+    command: ["cat", "/bewijs/bewijs.txt"]
     network_mode: none
     read_only: true
     cap_drop:
@@ -67,11 +67,11 @@ services:
     security_opt:
       - no-new-privileges:true
     volumes:
-      - evidence:/evidence:ro
+      - bewijs:/bewijs:ro
 
 networks:
-  app:
+  labnetwerk:
     driver: bridge
 
 volumes:
-  evidence:
+  bewijs:

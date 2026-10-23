@@ -2,8 +2,8 @@
 .github
 .env
 .gitignore
-docs
-evidence
+documentatie
+bewijs
 scripts
 LICENSE
 README.md

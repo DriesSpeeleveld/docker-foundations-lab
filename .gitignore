@@ -2,6 +2,6 @@
 .idea/
 .vscode/
 *.log
-evidence/runtime/
+bewijs/runtime/
 .DS_Store
 Thumbs.db
